@@ -1,0 +1,168 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.zhonghui</groupId>
+	<artifactId>gateway-service</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+	<packaging>${package.type}</packaging>
+
+	<name>gateway-service</name>
+	<url>http://maven.apache.org</url>
+	<!-- 仓库配置 -->
+	<repositories>
+		<repository>
+			<id>springio</id>
+			<url>http://10.0.101.6:8081/nexus/content/repositories/springio/</url>
+		</repository>
+		<repository>
+			<id>huitax-releases</id>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+			<url>http://10.0.101.6:8081/nexus/content/repositories/huitax-releases/</url>
+		</repository>
+		<repository>
+			<id>huitax-snapshots</id>
+			<url>http://10.0.101.6:8081/nexus/content/repositories/huitax-snapshots/</url>
+		</repository>
+	</repositories>
+    <parent>
+        <groupId>org.springframework.boot</groupId> 
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.0.0.RELEASE</version>
+    </parent>
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<java.version>1.8</java.version>
+		<junit.version>4.11</junit.version>
+		<huitax-core.version>1.0.0-SNAPSHOT</huitax-core.version>
+		<docker.registry>10.0.101.33:80/library</docker.registry>
+		<tag>1.0.0</tag>
+	</properties>
+	<dependencyManagement>
+    	<dependencies>
+	        <dependency>
+	            <groupId>org.springframework.cloud</groupId>
+	            <artifactId>spring-cloud-dependencies</artifactId>
+	            <version>Finchley.RC1</version>
+	            <type>pom</type>
+	            <scope>import</scope>
+	        </dependency>
+	    </dependencies>
+	</dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-ribbon</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-zuul</artifactId>
+        </dependency>
+        <dependency>
+			<groupId>com.zhonghui</groupId>
+			<artifactId>huitax-core</artifactId>
+			<version>${huitax-core.version}</version>
+		</dependency>
+    </dependencies>
+	
+	<profiles>
+		<profile> <!-- 可以通过 -P ID 来激活 开发环境 -->
+			<id>dev</id>	 <!-- ID 标识符 -->
+			<properties>
+				<env>dev</env>
+				<package.type>jar</package.type>
+			</properties>
+			<activation>
+				<activeByDefault>true</activeByDefault> <!-- 默认激活 -->
+			</activation>
+
+		</profile>
+		<profile> <!-- 可以通过 -P ID 来激活 测试环境 -->
+			<id>test</id> <!-- ID 标识符 -->
+			<properties>
+				<env>test</env>
+				<package.type>jar</package.type>
+			</properties>
+		</profile>
+		<profile> <!-- 可以通过 -P ID 来激活 线上生成环境 -->
+			<id>production</id> <!-- ID 标识符 -->
+			<properties>
+				<env>production</env>
+				<package.type>jar</package.type>
+			</properties>
+		</profile>
+	</profiles>
+	<build>
+		<resources>
+		</resources>
+		<filters>
+			<!--设置变量${env} -->
+			<filter>src/main/resources/config/application.properties</filter>
+		</filters>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<mainClass>com.zhonghui.gateway.App</mainClass>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
+				</configuration>
+			</plugin>
+			<!-- 忽略web.xml文件,servlet 3.0支持无web.xml的部署方式 -->
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-war-plugin</artifactId>
+				
+				<configuration>
+					<failOnMissingWebXml>false</failOnMissingWebXml>
+				</configuration>
+			</plugin>
+			
+			<!--https://github.com/spotify/dockerfile-maven-->
+			<plugin>
+				<groupId>com.spotify</groupId>
+				<artifactId>dockerfile-maven-plugin</artifactId>
+				<version>1.4.0</version>
+				<executions>
+					<execution>
+						<id>default</id>
+						<phase>deploy</phase>
+						<goals>
+							<goal>build</goal>
+							<goal>push</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<repository>${docker.registry}/${project.artifactId}</repository>
+					<tag>${tag}</tag>
+					<useMavenSettingsForAuth>true</useMavenSettingsForAuth>
+					<buildArgs>
+
+					</buildArgs>
+				</configuration>
+			</plugin>
+
+
+		</plugins>
+	</build>
+</project>
